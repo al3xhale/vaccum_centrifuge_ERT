@@ -1,4 +1,4 @@
-Code for Vaccum centrifuge project ERT
+Code for Vaccum centrifuge project ERT (very WIP)
 
 stuff todo:
 
