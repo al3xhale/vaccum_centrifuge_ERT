@@ -1,3 +1,4 @@
+%% this takes the 'TIMEACC.xls' data as imput and outputs w(t) and p(t) from t0 to tf so that the controler has the trajectory data
 %% acceleration curve - convert data from exel val to a trajectory
 ACC = readtable('TIMEACC.xls');
 tt = ACC.Var1;
