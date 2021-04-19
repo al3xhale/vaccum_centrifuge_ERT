@@ -4,9 +4,12 @@
 
 #define DIR 13
 #define PWM 5
+<<<<<<< HEAD
 #define FLT 10
 #define SLP 11
 
+=======
+>>>>>>> d36aae157a58fafc4a3f565f67006dafd28f612f
 
 volatile int aState = 0; //State of ENCA
 volatile int bState = 0; //State of ENCB
