@@ -2,9 +2,11 @@
 #define ENCB 3 //Interrupt pin for the B entry of the Encoder
 #define pulseRot 32 //Number of pulation per rotation, given by pololu: 32
 
-// PWM and DIR pins
 #define DIR 13
-#define PWM 12
+#define PWM 5
+#define FLT 10
+#define SLP 11
+
 
 volatile int aState = 0; //State of ENCA
 volatile int bState = 0; //State of ENCB
@@ -19,9 +21,17 @@ void setup() {
   
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
+  pinMode(FLT,INPUT);//this is set to low if a fault is detected
+
 
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoderA, RISING); //Attaching interrupt pins
   attachInterrupt(digitalPinToInterrupt(ENCB), readEncoderB, RISING); 
+
+  //setup pins for controler
+  digitalWrite(DIR,HIGH); //default direction
+
+  digitalWrite(SLP,HIGH);// high=normal,low=lowpower(sleep)
+  
 }
 
 void loop() {
@@ -41,7 +51,7 @@ void loop() {
   nbPulse = 0;
 
 
-  int target_omega = 50; // [rpm]
+  /*int target_omega = 500; // [rpm]
 
   float kp = 1; // proportionl controler
 
@@ -56,9 +66,10 @@ void loop() {
   if( pwr > 255 ){
     pwr = 255;
   }
+  */
 
   //sends pwm signal (pwr) to motor
-  analogWrite(PWM,pwr);
+  analogWrite(PWM,200);
 
   //sets direction for motor in controler
   if(dir==1){
@@ -67,19 +78,17 @@ void loop() {
       digitalWrite(DIR,LOW);
   }
   
-  delay(500); //Because i'm too slow (is this necessary ??)
-  
 }
 
 void readEncoderA(){
   //Serial.println("ENCA detected");
   motorDirection(); //Only enters this once as it is sufficient. Both impulse overlap.
-  nbPulse += 16; //Just because i'm too slow with fat fingers
+  nbPulse += 1; //Just because i'm too slow with fat fingers
 }
 
 void readEncoderB(){
   //Serial.println("ENCB detected");
-  nbPulse += 16;
+  nbPulse += 1;
 }
 
 void motorDirection(){
