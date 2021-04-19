@@ -4,7 +4,7 @@
 
 // PWM and DIR pins
 #define DIR 13
-#define PWM 12
+#define PWM 5
 
 volatile int aState = 0; //State of ENCA
 volatile int bState = 0; //State of ENCB
