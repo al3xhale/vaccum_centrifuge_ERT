@@ -7,13 +7,31 @@
 #define FLT 10
 #define SLP 11
 
+#define VALVE 8
+
 
 volatile int aState = 0; //State of ENCA
 volatile int bState = 0; //State of ENCB
+
 volatile int dir = 0; //Motor direction
 volatile int nbPulse = 0; //Number of pulse per deltaT
 
-long prevT = 0;
+float i_gear = 6.25; // the gear reductor inside the motor
+
+float rpm =0;
+float rpm_c = 1000;
+float pwm_cmd = 0;
+float err = 0;
+float cmd;
+
+float kp = 0.015;
+
+unsigned long t1;
+unsigned long t2;
+unsigned long dt =25; //this is dynamicaly calculated
+
+char serial_cmd = '+';
+int buttonState = -1;
 
 void setup() {
 
@@ -22,6 +40,11 @@ void setup() {
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
   pinMode(FLT,INPUT);//this is set to low if a fault is detected
+
+  pinMode(VALVE,OUTPUT);
+
+  rpm = 0;
+  nbPulse = 0;
 
 
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoderA, RISING); //Attaching interrupt pins
@@ -36,67 +59,83 @@ void setup() {
 
 void loop() {
 
-
-  //Using the pulse counting approach
-  long currT = micros(); //Current time in microseconds
-  float deltaT = ((float)(currT-prevT))/(1.0e6);
-  prevT = currT;
-
-  
-  //Serial.println(nbPulse);
-  //Serial.println(deltaT);
-  float omega = 2*PI*nbPulse/(pulseRot*deltaT); //Taking formula, seems to make sense
-  //Serial.println("Current Speed, taking measure every second [rpm]:");
-  Serial.println(omega);
+  t1 = millis();
   nbPulse = 0;
 
+  delay(10);
 
-  /*int target_omega = 500; // [rpm]
+  t2 = millis();
+  dt = t2 -t1;
 
-  float kp = 1; // proportionl controler
+  rpm = 60*(nbPulse/pulseRot)*(1/(i_gear*dt*0.001)); //calculates RPM using motor encoder
 
-  // error
-  int e = target_omega-omega;
+  err = rpm_c-rpm; //PID Error
 
-  // control signal
-  float u = kp*e;
+  pwm_cmd =( kp*err); // the pid control law
 
-  // motor power
-  float pwr = fabs(u);
-  if( pwr > 255 ){
-    pwr = 255;
-  }
-  */
+  cmd += pwm_cmd; // add the pid command to the current pwm command (because cmd goes from 0 to 255 while the pid command regulates the pwm_cmd value to 0)
 
-  //sends pwm signal (pwr) to motor
-  analogWrite(PWM,200);
-
-  //sets direction for motor in controler
-  if(dir==1){
-      digitalWrite(DIR,HIGH);
+  if(cmd>255){
+    cmd=255;
   }else{
-      digitalWrite(DIR,LOW);
+    if(cmd<0){
+      cmd=0;
+    }
   }
+
+  analogWrite(PWM,(int)cmd); // send pwm command to motor
+
+
+  //serial debug
+  #if 1
+   Serial.print(rpm);
+   Serial.print("\t");
+   Serial.print(err);
+   Serial.print("\t");
+   Serial.println(rpm_c);  
+   Serial.print("\t");
+   Serial.println(cmd);
+  #endif
+  
+
+
+    //Debug serial "commands"
+     if(Serial.available()>0)
+    {
+      serial_cmd = Serial.read();
+    }
+
+    if(serial_cmd=='w')
+    {
+      rpm_c += 10;
+    }
+    if(serial_cmd=='s')
+    {
+      rpm_c -= 10;
+    }
+    if(serial_cmd=='a'){
+      digitalWrite(VALVE,HIGH);
+    }
+    if(serial_cmd=='d'){
+      digitalWrite(VALVE,LOW);
+    }
+    serial_cmd=='+';
   
 }
 
 void readEncoderA(){
-  //Serial.println("ENCA detected");
-  motorDirection(); //Only enters this once as it is sufficient. Both impulse overlap.
-  nbPulse += 1; //Just because i'm too slow with fat fingers
+  nbPulse += 1; 
+
 }
 
 void readEncoderB(){
-  //Serial.println("ENCB detected");
   nbPulse += 1;
 }
 
 void motorDirection(){
   aState = digitalRead(ENCA);
   bState = digitalRead(ENCB);
-  Serial.println("Entering motorDirection");
-  Serial.println(aState);
-  Serial.println(bState);
+
   if(aState > 0 && bState == 0){ //Both impulse overlap so only need to check if both active or not
     dir = 1;
   }
@@ -104,9 +143,11 @@ void motorDirection(){
     dir = 2;
   }
   if(dir == 1){
-    Serial.println("Rotating clockwise");
+    //Serial.println("Rotating clockwise");
+    Serial.println(rpm);
   }
   else{
     Serial.println("Rotating counterclockwise");
+    Serial.println(rpm);
   }
 }
