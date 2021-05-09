@@ -87,7 +87,8 @@ void loop() {
 
   analogWrite(PWM,(int)cmd); // send pwm command to motor
 
-
+  // START OF DEBBUGIG CODE
+  
   //serial debug
   #if 1
    Serial.print(rpm);
@@ -99,8 +100,6 @@ void loop() {
    Serial.println(cmd);
   #endif
   
-
-
     //Debug serial "commands"
      if(Serial.available()>0)
     {
@@ -121,8 +120,8 @@ void loop() {
     if(serial_cmd=='d'){
       digitalWrite(VALVE,LOW);
     }
-    serial_cmd=='0';
-  
+    serial_cmd=='0'; // must be last line of debug code
+  // END OF DEBBUGIG CODE
 }
 
 void readEncoderA(){
