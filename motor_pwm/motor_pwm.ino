@@ -1,6 +1,6 @@
 #define ENCA 2 //Interrupt pin for the A entry of the Encoder
 #define ENCB 3 //Interrupt pin for the B entry of the Encoder
-#define pulseRot 32 //Number of pulation per rotation, given by pololu: 32
+#define pulseRot 32.0 //Number of pulation per rotation, given by pololu: 32
 
 #define DIR 13
 #define PWM 5
@@ -16,22 +16,25 @@ volatile int bState = 0; //State of ENCB
 volatile int dir = 0; //Motor direction
 volatile int nbPulse = 0; //Number of pulse per deltaT
 
-float i_gear = 6.25; // the gear reductor inside the motor
+const float i_gear = 6.25; // the gear reductor inside the motor
 
 float rpm =0;
 float rpm_c = 1000;
 float pwm_cmd = 0;
 float err = 0;
-float cmd;
+float cmd = 0;
 
-float kp = 0.015;
+const float err_max = 300;
+const float cmd_max = 255;
+const float cmd_min = 0;
+
+const float kp = 0.015;
 
 unsigned long t1;
 unsigned long t2;
 unsigned long dt =25; //this is dynamicaly calculated
 
-char serial_cmd = '+';
-int buttonState = -1;
+char serial_cmd = '0';
 
 void setup() {
 
@@ -40,12 +43,7 @@ void setup() {
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
   pinMode(FLT,INPUT);//this is set to low if a fault is detected
-
   pinMode(VALVE,OUTPUT);
-
-  rpm = 0;
-  nbPulse = 0;
-
 
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoderA, RISING); //Attaching interrupt pins
   attachInterrupt(digitalPinToInterrupt(ENCB), readEncoderB, RISING); 
@@ -67,19 +65,23 @@ void loop() {
   t2 = millis();
   dt = t2 -t1;
 
-  rpm = 60*(nbPulse/pulseRot)*(1/(i_gear*dt*0.001)); //calculates RPM using motor encoder
+  rpm = 60.0*(nbPulse/pulseRot)*(1.0/(i_gear*dt*0.001)); //calculates RPM using motor encoder
 
   err = rpm_c-rpm; //PID Error
+  if(err>err_max){ //limut controler input
+    err=err_max;
+  }else{if(err<-err_max){
+      err =-err_max;
+    }
+  }
 
   pwm_cmd =( kp*err); // the pid control law
 
   cmd += pwm_cmd; // add the pid command to the current pwm command (because cmd goes from 0 to 255 while the pid command regulates the pwm_cmd value to 0)
-
-  if(cmd>255){
-    cmd=255;
-  }else{
-    if(cmd<0){
-      cmd=0;
+  if(cmd>cmd_max){ //limut motor input
+    cmd=cmd_max;
+  }else{if(cmd<cmd_min){
+      cmd=cmd_min;
     }
   }
 
@@ -119,7 +121,7 @@ void loop() {
     if(serial_cmd=='d'){
       digitalWrite(VALVE,LOW);
     }
-    serial_cmd=='+';
+    serial_cmd=='0';
   
 }
 
