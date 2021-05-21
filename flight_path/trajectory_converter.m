@@ -14,7 +14,7 @@ N = (tf-t0)/dt;
 % *trajectory data *
 tt = tt(1:N);
 x_2dot = acc(1:N);
-plot(tt,x_2dot)
+%plot(tt,x_2dot)
 
 
 %% trajectory_converter
@@ -27,19 +27,23 @@ opts = odeset('RelTol',1e-4,'AbsTol',1e-6);
 
 
 omega = angular_trajectory(:,2);
-rpm = omega*(9.5493); %motor control
+rpm_cmd = omega*(9.5493); %motor control
 
 
 figure(1);
 title("Omega vs t");
-plot(tt_trajectory_angular,rpm);
+plot(tt_trajectory_angular,rpm_cmd);
 
 
 altitude = lin_trajectory(:,1);
 
-figure(2)
-title("altitude vs t");
-plot(tt_trajectory_linear,altitude);
+[~,~,~,P_cmd,~] = atm_icao(altitude);
+
+
+figure(2);
+title("Pressure vs t");
+plot(tt_trajectory_angular,P_cmd)
+
 
 
 %% functions
@@ -53,6 +57,43 @@ function dxdt = linear_trajectory_ode(t,x,x_2dot,h)
 dxdt(1,1)=x(2);
 current_time_discrete = floor(t*h);
 dxdt(2,1)=x_2dot(current_time_discrete);
+end
+
+function [ro,g,T,P,V_sound] = atm_icao(z)
+R = 286.99236; % air gaz constant
+% sea level
+T0 = 288.1667; %K
+P0 = 101314.628; %Pa
+
+% ICAO temp and pressure as function of height z above sea level
+if(z<=0) % remove z<0 case
+    T = T0;
+    P = P0;
+else
+    if(z<=11000) %zone 1
+        T = T0 - (0.006499708).*z;
+        P = P0*((1-(z*2.255692257.*10^(-5))).^(5.2561));
+    else
+        if((z>=11000)&&(z<=25000)) %zone 2
+            T = 216.66666667;
+            P = P0*0.223358.*exp( (-1.576883202.*10^(-4)).*(z-11000));
+        else % zone 3
+            T = 216.66666667 +(3.000145816.*10^(-3)).*(z-25000);
+            P = 2489.773467.*(exp( (-1.576883202.*10^(-4)).*(z-25000) ));
+        end 
+    end
+end
+
+ro = P./(R.*T);
+V_sound = 20.037673.*sqrt(T);
+
+% calculate g (not a part of ICAO but useful)
+G = 6.674e-11; % grav constant
+r_earth = 6371e3;%m
+M_earth = 5.972e24; %kg
+
+g = G*M_earth./((r_earth+z).^2);
+
 end
 
 
