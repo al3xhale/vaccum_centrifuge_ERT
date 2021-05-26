@@ -34,6 +34,7 @@ figure(1);
 title("Omega vs t");
 plot(tt_trajectory_angular,rpm_cmd);
 
+writematrix(rpm_cmd,'rpm_cmd.txt');
 
 altitude = lin_trajectory(:,1);
 
@@ -43,6 +44,7 @@ altitude = lin_trajectory(:,1);
 figure(2);
 title("Pressure vs t");
 plot(tt_trajectory_angular,P_cmd)
+writematrix(P_cmd,'P_cmd.txt');
 
 
 
@@ -95,6 +97,7 @@ M_earth = 5.972e24; %kg
 g = G*M_earth./((r_earth+z).^2);
 
 end
+
 
 
 

@@ -54,11 +54,8 @@ void draw () {
     
     current_omega = float(omega_traj[k]);
     
-    print("dt= ");
-    print(k*dt*0.001);
-    print(" omega = ");
-    println(current_omega);
-    myPort.write(int(current_omega));
+    println(k);
+    myPort.write(int(k));
     
     k = k+1; //avance discrete time
     delay(dt);
